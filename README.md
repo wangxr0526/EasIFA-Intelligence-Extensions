@@ -1,6 +1,6 @@
 # EasIFA Web Extensions
 
-`easifa-web-extensions` is the public companion repository for connecting EasIFA to MCP-capable LLM clients.
+`EasIFA-Intelligence-Extensions` is the public companion repository for connecting EasIFA to MCP-capable LLM clients.
 
 It currently ships three things:
 
@@ -41,7 +41,7 @@ Requirements:
 Install the project dependencies and start the MCP server:
 
 ```bash
-git clone <your-fork-or-this-repo-url>
+git clone https://github.com/wangxr0526/EasIFA-Intelligence-Extensions.git easifa-web-extensions
 cd easifa-web-extensions
 uv sync
 uv run easifa-mcp \
