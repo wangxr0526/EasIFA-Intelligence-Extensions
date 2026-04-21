@@ -1,0 +1,29 @@
+[build-system]
+requires = ["hatchling>=1.24.2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "easifa-mcp"
+version = "0.1.0"
+description = "Local MCP server proxy for EasIFA Agent Gateway HTTP endpoints"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [
+  { name = "Xiaorui Wang" },
+]
+dependencies = [
+  "httpx>=0.27.0",
+  "mcp>=1.27.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.0.0",
+]
+
+[project.scripts]
+easifa-mcp = "easifa_mcp.__main__:main"
+
+[tool.uv]
+package = true

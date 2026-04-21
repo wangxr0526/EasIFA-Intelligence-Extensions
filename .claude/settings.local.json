@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "easifa": {
+      "type": "stdio",
+      "command": "uv",
+      "args": [
+        "run",
+        "--directory",
+        "/home/xiaoruiwang/data/ubuntu_work_beta/single_step_work/EasIFA2.0_Prod/easifa-web-extensions",
+        "easifa-mcp"
+      ],
+      "env": {
+        "EASIFA_AGENT_BASE_URL": "https://cadd.drugflow.com/easifa",
+        "EASIFA_BACKEND_BASE_URL": "https://cadd.drugflow.com/easifa"
+      }
+    }
+  }
+}
