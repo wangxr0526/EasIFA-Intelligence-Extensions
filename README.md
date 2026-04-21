@@ -1,11 +1,23 @@
 # EasIFA Web Extensions
 
-`EasIFA-Intelligence-Extensions` is the public companion repository for connecting EasIFA to MCP-capable LLM clients.
+`EasIFA-Intelligence-Extensions` is the official companion repository for EasIFA 2.0 webserver described at [cadd.drugflow.com/easifa/description](https://cadd.drugflow.com/easifa/description).
+
+As described on the EasIFA website, the EasIFA 2.0 platform focuses on scalable, high-throughput enzyme active-site prediction with high-performance APIs, intelligent caching, agent-based task coordination, and AI-agent integration. This repository is the official integration layer that extends those EasIFA 2.0 capabilities into MCP-capable LLM clients.
+
+This is not a third-party add-on. It is the officially supported way to embed EasIFA 2.0 into agentic systems and production AI workflows, so users can bring EasIFA-powered enzyme analysis into virtually any Agent environment that supports MCP, local instructions, or both.
+
+In practice, the website and this repository are designed to work together:
+
+- the EasIFA website is the user-facing product for browser-based submission, result visualization, database access, API exploration, and agent pages
+- `easifa-web-extensions` is the official bridge that lets Claude, Codex, Copilot, and other MCP clients call EasIFA from an LLM workflow
+- the bundled skill gives agents the official usage guidance needed to choose EasIFA tools correctly and present EasIFA results in a readable, link-preserving way
+
+Use the EasIFA website when you want an interactive web experience. Use this repository when you want to embed EasIFA 2.0 into your own Agent workflow for tasks such as searching UniProt candidates, inspecting annotated sites, submitting structures or sequences, running batch jobs, and fetching EasIFA results without leaving the agent environment.
 
 It currently ships three things:
 
 - `easifa_mcp/`: a lightweight local MCP server that connects MCP clients to EasIFA over `stdio`
-- `skills/easifa-mcp-usage/`: an English skill focused on using EasIFA MCP well after it has been connected
+- `skills/easifa-mcp-usage/`: an agent skill focused on using EasIFA MCP well after it has been connected
 - `.claude/`, `.codex/`, `.copilot/`, `.vscode/`: ready-to-adapt client configuration templates for Claude, Codex, and Copilot
 
 The MCP server does not load EasIFA model weights and does not run inference locally. It acts as a thin bridge between MCP clients and an existing EasIFA deployment, so the same setup can target the public service or your own environment.
