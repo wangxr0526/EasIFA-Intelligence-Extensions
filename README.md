@@ -1,4 +1,4 @@
-# EasIFA Web Extensions
+# EasIFA Intelligence Extensions
 
 `EasIFA-Intelligence-Extensions` is the official companion repository for EasIFA 2.0 webserver described at [cadd.drugflow.com/easifa/description](https://cadd.drugflow.com/easifa/description).
 
