@@ -26,6 +26,8 @@ Use this skill after EasIFA MCP is already connected. Focus on choosing the righ
 | `batch-analyze-sequences` | The user wants EasIFA runs from amino-acid sequences | `data=[{"aa_sequence": "...", "rxn_smiles": "matching reaction"}]` |
 | `analyze-structure` | The user has a local PDB structure file to upload | `pdb_file_path`, optional `rxn_smiles` |
 | `get-job-result` | The user wants to re-check a known EasIFA job | `job_id` |
+| `create-job-share-link` | The user requests sharing or opening a private task in another browser | `job_id` |
+| `revoke-job-share-link` | The user requests revocation of a task's shared access | `job_id` |
 
 If `rxn_smiles` is provided for `batch-analyze-sequences`, it should describe the reaction catalyzed by the corresponding `aa_sequence` in the same item.
 
@@ -37,6 +39,9 @@ If `rxn_smiles` is provided for `batch-analyze-sequences`, it should describe th
 - If the payload contains `submission_endpoint`, `result_endpoint`, `poll_url`, or `result_url`, surface them in dedicated columns instead of hiding them in prose.
 - If a job is still `pending`, `queued`, or `processing`, say that clearly and show the polling route.
 - If the user asks for raw fields, provide them after the table rather than instead of the table.
+- Ordinary private result links require the submitting identity in the browser. Do not claim they are accessible to other users.
+- Only create a share link when the user requests it; report the returned `share_url` and explain that anyone holding it can read that task. Creation replaces any previous link; revocation also invalidates redeemed sharing sessions. Neither action changes Public/Private visibility.
+- The MCP owner identity persists locally across restarts. Never disclose its key or recovery file in chat or links. If an old private task returns 404, use its original owner identity; a new key does not recover lost access.
 
 ## Suggested Table Shapes
 

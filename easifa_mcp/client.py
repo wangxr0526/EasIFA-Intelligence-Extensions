@@ -2,13 +2,16 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 import time
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote, urlsplit
 
 import httpx
 
 from .config import EasifaMCPSettings
+from .identity import load_owner_key
 
 
 class EasifaAgentClient:
@@ -20,6 +23,7 @@ class EasifaAgentClient:
         backend_client: httpx.AsyncClient | None = None,
     ) -> None:
         self._settings = settings
+        self._session_key = load_owner_key(settings)
         self._owns_agent_clients = agent_client is None
         self._owns_backend_clients = backend_client is None
         self._agent_base_urls = settings.agent_base_urls or (settings.agent_base_url,)
@@ -119,14 +123,56 @@ class EasifaAgentClient:
         normalized_job_id = str(job_id or "").strip()
         if not normalized_job_id:
             raise RuntimeError("job_id cannot be empty")
-        return await self._request_json(
+        payload = await self._request_json(
             clients=self._backend_clients,
-            endpoint=f"/api/results/{normalized_job_id}",
+            endpoint=f"/api/results/{quote(normalized_job_id, safe='')}",
             service_label="EasIFA backend",
             config_hint_name="EASIFA_BACKEND_BASE_URL",
             method="GET",
             public_base_url_for_errors=self._frontend_base_url(),
             params={"slim": "true" if slim else "false"},
+        )
+        payload.setdefault("result_endpoint", self._frontend_result_url(normalized_job_id))
+        return payload
+
+    async def create_job_share_link(self, *, job_id: str) -> dict[str, Any]:
+        job_id = str(job_id or "").strip()
+        if not job_id:
+            raise ValueError("job_id cannot be empty")
+        payload = await self._request_json(
+            clients=self._backend_clients,
+            endpoint=f"/api/job/{quote(job_id, safe='')}/share",
+            method="POST",
+            service_label="EasIFA backend",
+            config_hint_name="EASIFA_BACKEND_BASE_URL",
+            public_base_url_for_errors=self._frontend_base_url(),
+        )
+        link = urlsplit(str(payload.get("share_url") or ""))
+        if (
+            not link.path.endswith("/results/" + job_id)
+            or link.query
+            or not re.fullmatch(r"share=[A-Za-z0-9_-]{43,128}", link.fragment)
+        ):
+            raise RuntimeError("EasIFA returned an invalid task sharing link.")
+        # Keep the deployment's configured browser origin; never expose the owner key.
+        return {
+            "job_id": job_id,
+            "share_url": self._frontend_result_url(job_id) + "#" + link.fragment,
+            "access": "read-only",
+            "message": "Anyone with this link can read this task. Creating a new link replaces the previous one. Task visibility is unchanged.",
+        }
+
+    async def revoke_job_share_link(self, *, job_id: str) -> dict[str, Any]:
+        job_id = str(job_id or "").strip()
+        if not job_id:
+            raise ValueError("job_id cannot be empty")
+        return await self._request_json(
+            clients=self._backend_clients,
+            endpoint=f"/api/job/{quote(job_id, safe='')}/share",
+            method="DELETE",
+            service_label="EasIFA backend",
+            config_hint_name="EASIFA_BACKEND_BASE_URL",
+            public_base_url_for_errors=self._frontend_base_url(),
         )
 
     async def analyze_structure(
@@ -214,7 +260,7 @@ class EasifaAgentClient:
         return f"{self._frontend_base_url()}{page_path}"
 
     def _frontend_result_url(self, job_id: str) -> str:
-        return f"{self._frontend_base_url()}/results/{job_id}"
+        return f"{self._frontend_base_url()}/results/{quote(job_id, safe='')}"
 
     def _frontend_job_status_url(self, job_id: str) -> str:
         return f"{self._frontend_base_url()}/job-status?jobId={job_id}"
@@ -272,6 +318,11 @@ class EasifaAgentClient:
         public_base_url_for_errors: str,
         **request_kwargs: Any,
     ) -> dict[str, Any]:
+        headers = httpx.Headers(request_kwargs.pop('headers', None))
+        headers['X-Easifa-Session'] = self._session_key
+        # Bind every request, including fallback and injected clients, to one owner.
+        request_kwargs['headers'] = headers
+        request_kwargs['follow_redirects'] = False
         errors: list[str] = []
         for index, client in enumerate(clients):
             is_last = index == len(clients) - 1
@@ -350,7 +401,8 @@ def _build_http_error_message(
         hint = (
             f" Check whether {config_hint_name} points to the correct service root, "
             "for example https://your-server.example.com/easifa/agent "
-            "or https://your-server.example.com/easifa."
+            "or https://your-server.example.com/easifa. Private jobs also require the original "
+            "EASIFA_SESSION_KEY or saved MCP identity; generating a new key cannot recover another owner's job."
         )
     elif response.status_code >= 500:
         hint = f" {service_label} may be unavailable on the target server."

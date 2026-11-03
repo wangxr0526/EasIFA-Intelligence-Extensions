@@ -59,6 +59,22 @@ Fetch the current EasIFA prediction result for a submitted job ID.
 
 This tool reads EasIFA backend `/api/results/{job_id}` directly.
 If the job is still running, the backend usually returns a JSON status payload.
+Private jobs use this MCP installation's saved owner identity across restarts.
+The ordinary result link requires that same identity in the browser. If the user requests
+a link for another browser or recipient, use create-job-share-link explicitly.
+""".strip()
+
+CREATE_SHARE_DESCRIPTION = """
+Create a read-only browser link for a task owned by this MCP identity.
+Use only when the user requests sharing or opening a private result in another browser.
+Anyone holding the link can read this task; keep it private. This replaces any previous
+share link for this task and leaves its Private/Public setting unchanged.
+Does not share the owner's other tasks. Requires the server's job-privacy upgrade.
+""".strip()
+
+REVOKE_SHARE_DESCRIPTION = """
+Revoke the current share link and redeemed sharing sessions for a task owned by this MCP identity.
+The owner keeps access. Public tasks remain public; this does not change task visibility.
 """.strip()
 
 
@@ -147,6 +163,26 @@ def create_server(settings: EasifaMCPSettings) -> tuple[FastMCP, EasifaAgentClie
     )
     async def get_job_result(job_id: str, slim: bool = True) -> dict[str, Any]:
         return await client.get_prediction_result(job_id=job_id, slim=slim)
+
+    @mcp.tool(
+        name="create-job-share-link",
+        description=CREATE_SHARE_DESCRIPTION,
+        annotations={"readOnlyHint": False, "destructiveHint": True,
+                     "idempotentHint": False, "openWorldHint": True},
+        structured_output=True,
+    )
+    async def create_job_share_link(job_id: str) -> dict[str, Any]:
+        return await client.create_job_share_link(job_id=job_id)
+
+    @mcp.tool(
+        name="revoke-job-share-link",
+        description=REVOKE_SHARE_DESCRIPTION,
+        annotations={"readOnlyHint": False, "destructiveHint": True,
+                     "idempotentHint": True, "openWorldHint": True},
+        structured_output=True,
+    )
+    async def revoke_job_share_link(job_id: str) -> dict[str, Any]:
+        return await client.revoke_job_share_link(job_id=job_id)
 
     return mcp, client
 

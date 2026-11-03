@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
+import hashlib
+from dataclasses import dataclass, field
+from pathlib import Path
 from urllib.parse import urlparse, urlunparse
 
 DEFAULT_LOCAL_BASE_URL = "http://localhost:8011/easifa-agent"
@@ -171,6 +173,17 @@ class EasifaMCPSettings:
     public_agent_base_url: str | None = None
     bearer_token: str | None = None
     timeout_seconds: float = DEFAULT_TIMEOUT_SECONDS
+    session_key: str | None = field(default=None, repr=False)
+    session_file: Path | None = None
+
+    def owner_file(self) -> Path:
+        if self.session_file is not None:
+            return Path(self.session_file).expanduser()
+        # Stable across fallback order changes, separate for different deployments.
+        bases = self.backend_base_urls or (self.backend_base_url,)
+        profile = hashlib.sha256('\n'.join(sorted({url.rstrip('/') for url in bases})).encode()).hexdigest()[:20]
+        state = Path(os.getenv('XDG_STATE_HOME') or Path.home() / '.local' / 'state')
+        return state / 'easifa-mcp' / profile / 'session.json'
 
     @classmethod
     def from_env(
@@ -245,4 +258,6 @@ class EasifaMCPSettings:
             public_agent_base_url=resolved_public_agent_base_url,
             bearer_token=resolved_token,
             timeout_seconds=timeout_seconds,
+            session_key=os.getenv('EASIFA_SESSION_KEY') or None,
+            session_file=Path(os.environ['EASIFA_MCP_SESSION_FILE']).expanduser() if os.getenv('EASIFA_MCP_SESSION_FILE') else None,
         )
